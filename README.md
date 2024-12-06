@@ -4,9 +4,9 @@ This repository contains programming assignments for my Deep Generative Models (
 
 ## Structure
 - `תרגיל בית 1/`: Dry homework 1.
-- `תרגיל בית 2/`: NICE flow model implementation (wet homwork 1).
+- `תרגיל בית 2/`: NICE flow model implementation (wet homework 1).
 
 ## Instructions
-1. Clone the repository: `git clone https://github.com/your-username/DGM_Assignments.git`
+1. Clone the repository: `git clone https://github.com/YossiSella/DGM_Bar_Ilan_Assignments.git`
 2. Navigate to the assignment folder of interest.
 3. Follow the instructions in the folder-specific README.md (if available).
