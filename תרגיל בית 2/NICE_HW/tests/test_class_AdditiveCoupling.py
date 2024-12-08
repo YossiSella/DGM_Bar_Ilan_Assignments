@@ -1,3 +1,14 @@
+## patch solution to run the test using pytest package- importing packages sys and os.
+## in the future will try to use a more elegant and generic solution
+
+# for now the test can be ran usign pytest or directly running the script (using main function)
+
+import sys
+import os
+
+# Add the parent directory of the test file to the sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import torch
 from nice import AdditiveCoupling  # Import the class from your implementation
 
