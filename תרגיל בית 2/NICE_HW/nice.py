@@ -19,7 +19,17 @@ class AdditiveCoupling(nn.Module):
             mask_config: 1 if transform odd units, 0 if transform even units.
         """
         super(AdditiveCoupling, self).__init__()
-        #TODO fill in
+        #Define mask
+        self.mask_config = mask_config
+        self.mask        = torch.tensor([i % 2 == mask_config for i in range (in_out_dim)])
+
+        #Define a feed-forward network for the transformation t(x_1)
+        layers = [nn.Linear(in_out_dim // 2, mid_dim), nn.ReLU()]
+        for _ in range(hidden - 1):
+            layers.extend([nn.Linear(mid_dim, mid_dim), nn.ReLU()])
+        layers.append(nn.Linear(mid_dim, in_out_dim // 2)) #Output size matches x_2
+        self.network = nn.Sequential(*layers)
+
 
     def forward(self, x, log_det_J, reverse=False):
         """Forward pass.
