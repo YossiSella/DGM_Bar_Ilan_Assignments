@@ -19,15 +19,15 @@ class AdditiveCoupling(nn.Module):
             mask_config: 1 if transform odd units, 0 if transform even units.
         """
         super(AdditiveCoupling, self).__init__()
-        #Define mask
+        # Create a binary mask to split inputs into two parts
         self.mask_config = mask_config
         self.mask        = torch.tensor([i % 2 == mask_config for i in range (in_out_dim)])
 
-        #Define a feed-forward network for the transformation t(x_1)
+        # Define a feed-forward network for the transformation t(x1)
         layers = [nn.Linear(in_out_dim // 2, mid_dim), nn.ReLU()]
         for _ in range(hidden - 1):
             layers.extend([nn.Linear(mid_dim, mid_dim), nn.ReLU()])
-        layers.append(nn.Linear(mid_dim, in_out_dim // 2)) #Output size matches x_2
+        layers.append(nn.Linear(mid_dim, in_out_dim // 2)) #Output size matches x2
         self.network = nn.Sequential(*layers)
 
 
@@ -41,7 +41,24 @@ class AdditiveCoupling(nn.Module):
         Returns:
             transformed tensor and updated log-determinant of Jacobian.
         """
-        #TODO fill in
+        # Split inputs into x1 (unchanged) and x2 (tansformed)
+        x1 = x[:, self.mask]  # Part determined by the mask
+        x2 = x[:, ~self.mask] # Complementary part
+
+        if reverse:
+            # Reverse transformation: x2 = x2' - t(x1)
+            x2 = x2 - self.network(x1)
+        else:
+            # Forward transformation: x2' = x2 + t(x1)
+            x2 = x2 + self.network(x1)
+
+        # Concatenate x1 and x2 back into the full tensor
+        x_out = torch.zeros_like(x)
+        x_out[:, self.mask]  = x1
+        x_out[:, ~self.mask] = x2
+
+        #log_det_J remains unchanged because the Jacobian determinant is 1
+        return x_out, log_det_J
 
 class AffineCoupling(nn.Module):
     def __init__(self, in_out_dim, mid_dim, hidden, mask_config):
