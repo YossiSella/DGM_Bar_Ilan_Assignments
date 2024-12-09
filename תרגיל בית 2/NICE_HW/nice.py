@@ -24,12 +24,15 @@ class AdditiveCoupling(nn.Module):
         self.mask        = torch.tensor([i % 2 == mask_config for i in range (in_out_dim)])
 
         # Define a feed-forward network for the transformation t(x1)
-        layers = [nn.Linear(in_out_dim // 2, mid_dim), nn.ReLU()]
-        for _ in range(hidden - 1):
-            layers.extend([nn.Linear(mid_dim, mid_dim), nn.ReLU()])
-        layers.append(nn.Linear(mid_dim, in_out_dim // 2)) #Output size matches x2
-        self.network = nn.Sequential(*layers)
+        self.network     = self._build_network(in_out_dim // 2, mid_dim, hidden)
 
+        def _build_network(self, input_dim, mid_dim, hidden):
+            """Helper to build the MLP network."""
+            layers = [nn.linear(input_dim, mid_dim), nn.ReLU()]
+            for _ in range(hidden - 1):
+                layers.extend([nn.linear(mid_dim, mid_dim), nn.ReLU()])
+            layers.append(nn.Linear(mid_dim, input_dim)) #Output size matches x2
+            return nn.Sequential(*layers)
 
     def forward(self, x, log_det_J, reverse=False):
         """Forward pass.
