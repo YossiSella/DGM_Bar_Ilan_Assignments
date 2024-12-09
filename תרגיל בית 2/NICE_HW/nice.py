@@ -78,7 +78,7 @@ class AffineCoupling(nn.Module):
         self.mask_config = mask_config
         self.mask        = torch.tensor([i % 2 == mask_config for i in range(in_out_dim)])
 
-        # Define network for both scale (s) and translation (t)
+        # Define a network for both scale (s) and translation (t)
         self.network     = self._build_network(in_out_dim // 2, mid_dim, hidden)
         
         def _build_network(self, input_dim, mid_dim, hidden):
@@ -86,7 +86,7 @@ class AffineCoupling(nn.Module):
             layers = [nn.linear(input_dim, mid_dim), nn.ReLU()]
             for _ in range(hidden - 1):
                 layers.extend([nn.linear(mid_dim, mid_dim), nn.ReLU()])
-            layers = [nn.linear(mid_dim, input_dim*2), nn.ReLU()]
+            layers.append(nn.linear(mid_dim, input_dim*2)) # Output is scale + shift 
             return nn.Sequential(*layers)
 
 
