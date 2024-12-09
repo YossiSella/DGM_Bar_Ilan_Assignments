@@ -75,19 +75,18 @@ class AffineCoupling(nn.Module):
         self.mask_config = mask_config
         self.mask        = torch.tensor([i % 2 == mask_config for i in range(in_out_dim)])
 
-        # Define scale (s) and translation (t) networks
-        self.scale_net     = self._build_network(in_out_dim // 2, mid_dim, hidden)
-        self.translate_net = self._build_network(in_out_dim // 2, mid_dim, hidden)
-
+        # Define network for both scale (s) and translation (t)
+        self.network     = self._build_network(in_out_dim // 2, mid_dim, hidden)
+        
         def _build_network(self, input_dim, mid_dim, hidden):
             """Helper to build the MLP network."""
             layers = [nn.linear(input_dim, mid_dim), nn.ReLU()]
             for _ in range(hidden - 1):
                 layers.extend([nn.linear(mid_dim, mid_dim), nn.ReLU()])
-            layers = [nn.linear(mid_dim, input_dim), nn.ReLU()]
+            layers = [nn.linear(mid_dim, input_dim*2), nn.ReLU()]
             return nn.Sequential(*layers)
-      
-        
+
+
     def forward(self, x, log_det_J, reverse=False):
         """Forward pass.
 
@@ -98,7 +97,15 @@ class AffineCoupling(nn.Module):
         Returns:
             transformed tensor and updated log-determinant of Jacobian.
         """
-        #TODO fill in
+        # Split input into x1 (unchanged) and x2 (transformed)
+        x1 = x[:, self.mask]
+        x2 = x[:, ~self.mask]
+
+        # Compute scale and translation
+        scale    = self.scale_net(x1)
+        tanslate = self.translate_net(x1)
+
+
 
 """Log-scaling layer.
 """
