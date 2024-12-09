@@ -71,8 +71,23 @@ class AffineCoupling(nn.Module):
             mask_config: 1 if transform odd units, 0 if transform even units.
         """
         super(AffineCoupling, self).__init__()
-        #TODO fill in
+        # Create a binary mask to split inputs into two parts
+        self.mask_config = mask_config
+        self.mask        = torch.tensor([i % 2 == mask_config for i in range(in_out_dim)])
 
+        # Define scale (s) and translation (t) networks
+        self.scale_net     = self._build_network(in_out_dim // 2, mid_dim, hidden)
+        self.translate_net = self._build_network(in_out_dim // 2, mid_dim, hidden)
+
+        def _build_network(self, input_dim, mid_dim, hidden):
+            """Helper to build the MLP network."""
+            layers = [nn.linear(input_dim, mid_dim), nn.ReLU()]
+            for _ in range(hidden - 1):
+                layers.extend([nn.linear(mid_dim, mid_dim), nn.ReLU()])
+            layers = [nn.linear(mid_dim, input_dim), nn.ReLU()]
+            return nn.Sequential(*layers)
+      
+        
     def forward(self, x, log_det_J, reverse=False):
         """Forward pass.
 
