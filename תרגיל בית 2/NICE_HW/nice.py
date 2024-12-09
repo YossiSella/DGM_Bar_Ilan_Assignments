@@ -105,10 +105,25 @@ class AffineCoupling(nn.Module):
         x2 = x[:, ~self.mask]
 
         # Compute scale and translation
-        scale    = self.scale_net(x1)
-        tanslate = self.translate_net(x1)
+        scale_shift  = self.network(x1)            # Single network generates scale and shift
+        scale, shift = scale_shift.chunk(2, dim=1) # Split output to scale and shift
+        scale        = torch.sigmoid(scale + 2.)   # Apply sigmoid activation to ensure positivity
 
+        if reverse:
+            # Reverse transformation: x2  = (x2' - t(x1)) / exp(s(x1))
+            x2         = (x2 - shift) / scale
+            log_det_J -= torch.sum(torch.log(scale), dim=1)
+        else:
+            # Forward transformation: x2' = x2' * exp(s(x1)) + t(x1))
+            x2         = x2 * scale + shift
+            log_det_J += torch.sum(torch.log(scale), dim=1)
 
+        # Combine x1 and x2 back into the full tensor
+        x_out = torch.zeros_like(x)
+        x_out[:, self.mask]  = x1
+        x_out[:, ~self.mask] = x2
+
+        return x_out, log_det_J
 
 """Log-scaling layer.
 """
