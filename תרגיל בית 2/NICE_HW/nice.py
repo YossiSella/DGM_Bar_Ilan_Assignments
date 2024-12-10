@@ -149,7 +149,17 @@ class Scaling(nn.Module):
             transformed tensor and log-determinant of Jacobian.
         """
         scale = torch.exp(self.scale)+ self.eps
-        #TODO fill in
+        
+        if reverse:
+            # Reverse the transfornation: x = y / exp(s)
+            x = x / scale
+        else:
+            # Reverse the transfornation: x = y * exp(s)
+            x = x * scale
+            
+        log_det_j = torch.sum(self.scale)
+
+        return x, log_det_j
 
 """Standard logistic distribution.
 """
