@@ -1,5 +1,5 @@
 ## patch solution to run the test using pytest package- importing packages sys and os.
-## in the future will try to use a more elegant and generic solution
+##TODO in the future will try to use a more elegant and generic solution
 
 # for now the test can be ran usign pytest or directly running the script (using main function)
 
