@@ -234,7 +234,11 @@ class NICE(nn.Module):
         Returns:
             transformed tensor in latent space Z and log determinant Jacobian
         """
-        #TODO fill in
+        log_det_J = torch.zeros(x.size(0), device=self.device)  # Initialize Jacobian determinant
+        for layer in self.coupling_layers:
+            x, log_det_J = layer(x, log_det_J, reverse=False)
+        x, log_det_J = self.scaling_layer(x, log_det_J, reverse=False)
+        return x, log_det_J
 
     def log_prob(self, x):
         """Computes data log-likelihood.
