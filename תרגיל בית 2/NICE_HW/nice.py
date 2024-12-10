@@ -156,7 +156,7 @@ class Scaling(nn.Module):
         else:
             # Reverse the transfornation: x = y * exp(s)
             x = x * scale
-            
+
         log_det_j = torch.sum(self.scale)
 
         return x, log_det_j
@@ -189,11 +189,28 @@ class NICE(nn.Module):
             self.prior = logistic
         else:
             raise ValueError('Prior not implemented.')
+        
         self.in_out_dim = in_out_dim
         self.coupling = coupling
         self.coupling_type = coupling_type
 
-        #TODO fill in
+        # Create coupling layers
+        self.coupling_layers = nn.ModuleList()
+        for i in range(coupling):
+            mask_config = i % 2 # Alternate masks (odd/even)
+            if coupling_type == "additive":
+                self.coupling_layers.append(AdditiveCoupling(in_out_dim, mid_dim, hidden, mask_config))
+            elif coupling_type in ["affine", "adaptive"]:
+                self.coupling_layers.append(AffineCoupling(in_out_dim, mid_dim, hidden, mask_config))
+            else:
+                raise ValueError("Invalid coupling type (or hasn't been implemented yet). Use 'additive' or 'affine/adaptive'.")
+
+        # Add the final scaling layer
+        self.scaling_layer = Scaling(in_out_dim)
+
+        # Move model to the correct device after layers are defined
+        self.to(device) 
+
 
     def f_inverse(self, z):
         """Transformation g: Z -> X (inverse of f).
