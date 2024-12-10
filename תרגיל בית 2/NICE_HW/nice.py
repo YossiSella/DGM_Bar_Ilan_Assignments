@@ -220,7 +220,11 @@ class NICE(nn.Module):
         Returns:
             transformed tensor in data space X.
         """
-        #TODO fill in
+        z = z.to(self.device) # Ensure input is on the correct device
+        for layer in reversed(self.coupling_layers):
+            z, _ = layer(z, reverse=True)
+        z, _ = self.scaling_layer(z, reverse=True)
+        return z
 
     def f(self, x):
         """Transformation f: X -> Z (inverse of g).
