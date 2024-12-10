@@ -32,6 +32,7 @@ class AdditiveCoupling(nn.Module):
         for _ in range(hidden - 1):
             layers.extend([nn.Linear(mid_dim, mid_dim), nn.ReLU()])
         layers.append(nn.Linear(mid_dim, input_dim)) #Output size matches x2
+       
         return nn.Sequential(*layers)
 
     def forward(self, x, log_det_J, reverse=False):
@@ -87,6 +88,7 @@ class AffineCoupling(nn.Module):
         for _ in range(hidden - 1):
             layers.extend([nn.Linear(mid_dim, mid_dim), nn.ReLU()])
         layers.append(nn.Linear(mid_dim, input_dim*2)) # Output is scale + shift 
+        
         return nn.Sequential(*layers)
 
 
@@ -119,7 +121,7 @@ class AffineCoupling(nn.Module):
             log_det_J  = log_det_J + torch.sum(torch.log(scale), dim=1)
 
         # Combine x1 and x2 back into the full tensor
-        x_out = torch.zeros_like(x)
+        x_out                = torch.zeros_like(x)
         x_out[:, self.mask]  = x1
         x_out[:, ~self.mask] = x2
 
@@ -137,7 +139,7 @@ class Scaling(nn.Module):
         super(Scaling, self).__init__()
         self.scale = nn.Parameter(
             torch.zeros((1, dim)), requires_grad=True)
-        self.eps = 1e-5
+        self.eps   = 1e-5
 
     def forward(self, x, reverse=False):
         """Forward pass.
@@ -190,8 +192,8 @@ class NICE(nn.Module):
         else:
             raise ValueError('Prior not implemented.')
         
-        self.in_out_dim = in_out_dim
-        self.coupling = coupling
+        self.in_out_dim    = in_out_dim
+        self.coupling      = coupling
         self.coupling_type = coupling_type
 
         # Create coupling layers
@@ -224,6 +226,7 @@ class NICE(nn.Module):
         for layer in reversed(self.coupling_layers):
             z, _ = layer(z, reverse=True)
         z, _ = self.scaling_layer(z, reverse=True)
+        
         return z
 
     def f(self, x):
@@ -238,6 +241,7 @@ class NICE(nn.Module):
         for layer in self.coupling_layers:
             x, log_det_J = layer(x, log_det_J, reverse=False)
         x, log_det_J = self.scaling_layer(x, log_det_J, reverse=False)
+        
         return x, log_det_J
 
     def log_prob(self, x):
@@ -255,8 +259,8 @@ class NICE(nn.Module):
         
         dequant_adj_term = torch.log(torch.tensor(256.0, device=self.device)) * self.in_out_dim  # Dequantization adjustment
         log_det_J       -= dequant_adj_term                                                      #log det for rescaling from [0.256] (after dequantization) to [0,1]
+        log_ll           = torch.sum(self.prior.log_prob(z), dim=1)                              # Prior probability of z
         
-        log_ll = torch.sum(self.prior.log_prob(z), dim=1)  # Prior probability of z
         return log_ll + log_det_J
 
     def sample(self, size):
@@ -268,6 +272,7 @@ class NICE(nn.Module):
             samples from the data space X.
         """
         z = self.prior.sample((size, self.in_out_dim)).to(self.device)
+        
         return self.f_inverse(z)
 
     def forward(self, x):
