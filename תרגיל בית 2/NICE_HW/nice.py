@@ -268,7 +268,7 @@ class NICE(nn.Module):
             samples from the data space X.
         """
         z = self.prior.sample((size, self.in_out_dim)).to(self.device)
-        #TODO
+        return self.f_inverse(z)
 
     def forward(self, x):
         """Forward pass.
