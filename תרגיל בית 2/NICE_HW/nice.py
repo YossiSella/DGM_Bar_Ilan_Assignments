@@ -250,9 +250,13 @@ class NICE(nn.Module):
         Returns:
             log-likelihood of input.
         """
+        x            = x.to(self.device) # Ensure input is on the correct device
         z, log_det_J = self.f(x)
-        log_det_J -= np.log(256)*self.in_out_dim #log det for rescaling from [0.256] (after dequantization) to [0,1]
-        log_ll = torch.sum(self.prior.log_prob(z), dim=1)
+        
+        dequant_adj_term = torch.log(torch.tensor(256.0, device=self.device)) * self.in_out_dim  # Dequantization adjustment
+        log_det_J       -= dequant_adj_term                                                      #log det for rescaling from [0.256] (after dequantization) to [0,1]
+        
+        log_ll = torch.sum(self.prior.log_prob(z), dim=1)  # Prior probability of z
         return log_ll + log_det_J
 
     def sample(self, size):
