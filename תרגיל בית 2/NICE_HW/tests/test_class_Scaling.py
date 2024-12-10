@@ -21,10 +21,10 @@ def test_scaling_layer():
     log_det_J = torch.zeros(10)  # Initialize log determinant
 
     # Forward transformation
-    x_out, log_det_J_out = layer(x, log_det_J, reverse=False)
+    x_out, log_det_J_out = layer(x, reverse=False)
 
     # Reverse transformation
-    x_reconstructed, log_det_J_reconstructed = layer(x_out, log_det_J_out, reverse=True)
+    x_reconstructed, log_det_J_reconstructed = layer(x_out, reverse=True)
 
     # Check invertibility
     assert torch.allclose(x, x_reconstructed, atol=1e-5), "Input and reconstructed input do not match."
