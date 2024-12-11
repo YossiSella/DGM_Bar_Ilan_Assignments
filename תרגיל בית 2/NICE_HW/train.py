@@ -26,14 +26,26 @@ def train(flow, trainloader, optimizer, epoch):
 def test(flow, testloader, filename, epoch, sample_shape):
     flow.eval()  # set to inference mode
     with torch.no_grad():
+        nll_tot = 0
+        count   = 0 
         samples = flow.sample(100).cpu()
         a,b = samples.min(), samples.max()
         samples = (samples-a)/(b-a+1e-10) 
         samples = samples.view(-1,sample_shape[0],sample_shape[1],sample_shape[2])
         torchvision.utils.save_image(torchvision.utils.make_grid(samples),
                                      './samples/' + filename + 'epoch%d.png' % epoch)
-        #TODO full in
+        
+        # Compute negative log-likelihood
+        for inputs, _ in testloader:
+            inputs = inputs.view(inputs.shape[0],inputs.shape[1]*inputs.shape[2]*inputs.shape[3]) #change  shape from BxCxHxW to Bx(C*H*W) 
+            inputs = inputs.to(flow.device) # Moves the inputs to the correct device
 
+            nll      = -flow(inputs).sum().item()
+            nll_tot += nll
+            count   += inputs.size(0)
+
+        nll_avg = nll_tot / count
+        print(f"Epoch {epoch}: Average Negative Log-Likelihood: {nll_avg}")
 
 def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
