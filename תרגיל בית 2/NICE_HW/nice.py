@@ -240,7 +240,7 @@ class NICE(nn.Module):
         log_det_J = torch.zeros(x.size(0), device=self.device)  # Initialize Jacobian determinant
         for layer in self.coupling_layers:
             x, log_det_J = layer(x, log_det_J, reverse=False)
-        x, log_det_J = self.scaling_layer(x, log_det_J, reverse=False)
+        x, log_det_J = self.scaling_layer(x, reverse=False)
         
         return x, log_det_J
 
