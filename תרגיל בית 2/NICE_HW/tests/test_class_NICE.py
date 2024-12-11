@@ -21,7 +21,15 @@ def nice_model():
     coupling = 4
     prior = 'logistic'
     coupling_type = 'additive'
-    device = torch.device("cpu")
+    
+    if torch.cuda.is_available():
+        print(f"Available GPU: {torch.cuda.get_device_name(0)}")
+        
+    else:
+        print("No GPU available.")
+        
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device:", device)
 
     print("Initializing NICE model with dimensions:", in_out_dim)
     return NICE(prior, coupling, coupling_type, in_out_dim, mid_dim, hidden, device)
@@ -34,7 +42,7 @@ def test_initialization(nice_model):
 
 def test_forward_inverse(nice_model):
     print("Testing forward and inverse transformations...")
-    x = torch.rand(10, nice_model.in_out_dim)  # Random input batch
+    x = torch.rand(10, nice_model.in_out_dim, device=nice_model.device)  # Random input batch
     print("Input tensor:", x)
 
     # Forward transformation
@@ -52,7 +60,7 @@ def test_forward_inverse(nice_model):
 
 def test_log_prob(nice_model):
     print("Testing log probability computation...")
-    x = torch.rand(10, nice_model.in_out_dim)  # Random input batch
+    x = torch.rand(10, nice_model.in_out_dim, device=nice_model.device)  # Random input batch
     print("Input tensor:", x)
 
     # Compute log probability
