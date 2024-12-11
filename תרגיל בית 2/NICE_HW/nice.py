@@ -167,6 +167,35 @@ class Scaling(nn.Module):
 """
 logistic = TransformedDistribution(Uniform(0, 1), [SigmoidTransform().inv, AffineTransform(loc=0., scale=1.)])
 
+"""Device compatible logistic distribution
+"""
+def create_logistic_prior(loc=0.0, scale=1.0, device='cpu'):
+    """
+    Creates a logistic distribution that is device-compatible.
+
+    Args:
+        loc: Location parameter (mean of the distribution).
+        scale: Scale parameter (variance related to spread).
+        device: The device to place tensors on (CPU or GPU).
+
+    Returns:
+        A TransformedDistribution object representing the logistic distribution.
+    """
+    # Make sure base distribution is on the correct device
+    base_dist = Uniform(
+        torch.tensor(0.0, device=device),
+        torch.tensor(1.0, device=device)
+    )
+
+    # Apply transformations
+    transforms = [SigmoidTransform().inv, AffineTransform(loc=loc, scale=scale)]
+
+    # Create the transformed logistic distribution
+    logistic = TransformedDistribution(base_dist, transforms)
+
+    return logistic
+
+
 """NICE main model.
 """
 class NICE(nn.Module):
@@ -188,7 +217,7 @@ class NICE(nn.Module):
             self.prior = torch.distributions.Normal(
                 torch.tensor(0.).to(device), torch.tensor(1.).to(device))
         elif prior == 'logistic':
-            self.prior = logistic
+            self.prior = create_logistic_prior(device=self.device)
         else:
             raise ValueError('Prior not implemented.')
         
@@ -224,7 +253,7 @@ class NICE(nn.Module):
         """
         z = z.to(self.device) # Ensure input is on the correct device
         for layer in reversed(self.coupling_layers):
-            z, _ = layer(z, reverse=True)
+            z, _ = layer(z, None, reverse=True)
         z, _ = self.scaling_layer(z, reverse=True)
         
         return z
@@ -237,6 +266,7 @@ class NICE(nn.Module):
         Returns:
             transformed tensor in latent space Z and log determinant Jacobian
         """
+        x         = x.to(self.device)                           # Ensure input is on the correct device
         log_det_J = torch.zeros(x.size(0), device=self.device)  # Initialize Jacobian determinant
         for layer in self.coupling_layers:
             x, log_det_J = layer(x, log_det_J, reverse=False)
@@ -257,10 +287,19 @@ class NICE(nn.Module):
         x            = x.to(self.device) # Ensure input is on the correct device
         z, log_det_J = self.f(x)
         
+
         dequant_adj_term = torch.log(torch.tensor(256.0, device=self.device)) * self.in_out_dim  # Dequantization adjustment
         log_det_J       -= dequant_adj_term                                                      #log det for rescaling from [0.256] (after dequantization) to [0,1]
+        # z            = z.to(self.device)
+        # log_det_J    = log_det_J.to(self.device)
+
+        # if hasattr(self.prior, 'loc') and hasattr(self.prior, 'scale'):
+        #     self.prior.loc = self.prior.loc.to(self.device)
+        #     self.prior.scale = self.prior.scale.to(self.device)
+
         log_ll           = torch.sum(self.prior.log_prob(z), dim=1)                              # Prior probability of z
-        
+        # log_ll    = log_ll.to(self.device)
+
         return log_ll + log_det_J
 
     def sample(self, size):
