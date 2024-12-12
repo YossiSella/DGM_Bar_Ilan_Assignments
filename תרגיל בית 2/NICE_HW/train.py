@@ -9,13 +9,13 @@ from collections import defaultdict
 from tqdm import trange
 import matplotlib.pyplot as plt
 import pickle
+import time
 import nice
 
 
 def train(flow, trainloader, optimizer, epoch):
     flow.train()  # set to training mode
     tot_nll     = 0
-    tot_samples = 0
     for inputs,_ in trainloader:
         inputs =  inputs.view(inputs.shape[0],inputs.shape[1]*inputs.shape[2]*inputs.shape[3]) #change  shape from BxCxHxW to Bx(C*H*W)
         inputs = inputs.to(flow.device) # Moves the inputs to the correct device
@@ -24,12 +24,11 @@ def train(flow, trainloader, optimizer, epoch):
         nll.backward()                  # Appling Backpropagation
         optimizer.step()                # Gradient Descent step
 
-        # Track total NLL and sample count
-        tot_nll     += nll.item() * inputs.size(0)
-        tot_samples +=  inputs.size(0)
-    
-    avg_nll = tot_nll / tot_samples
-    print(f"Epoch {epoch}: Average Training NLL: {avg_nll}")
+        # Track total NLL
+        tot_nll += nll.item() 
+
+    avg_nll = tot_nll / len(trainloader)
+    print(f"Epoch {epoch}: Average Training Negative Log-Likelihhod: {avg_nll}")
     print(f"Epoch {epoch}: Training completed.")
     return avg_nll
 
@@ -37,25 +36,26 @@ def test(flow, testloader, filename, epoch, sample_shape):
     flow.eval()  # set to inference mode
     with torch.no_grad():
         tot_nll     = 0
-        tot_samples = 0
         samples = flow.sample(100).cpu()
         a,b = samples.min(), samples.max()
         samples = (samples-a)/(b-a+1e-10) 
         samples = samples.view(-1,sample_shape[0],sample_shape[1],sample_shape[2])
+        timestamp = time.strftime('%Y%m%d-%H%M%S')
+        image_filename = f'./samples/{args.dataset}_{args.batch_size}_{args.coupling}_{args.coupling_type}_{args.mid_dim}_{args.hidden}_epoch{epoch}_{timestamp}.png'
         torchvision.utils.save_image(torchvision.utils.make_grid(samples),
-                                     './samples/' + filename + 'epoch%d.png' % epoch)
+                                     image_filename)
         
         # Compute negative log-likelihood
         for inputs, _ in testloader:
             inputs = inputs.view(inputs.shape[0],inputs.shape[1]*inputs.shape[2]*inputs.shape[3]) #change  shape from BxCxHxW to Bx(C*H*W) 
             inputs = inputs.to(flow.device) # Moves the inputs to the correct device
+            nll          = -flow(inputs).mean().item()
 
-            nll          = -flow(inputs).sum().item()
+            # Track total NLL
             tot_nll     += nll
-            tot_samples += inputs.size(0)
 
-        nll_avg = tot_nll / tot_samples
-        print(f"Epoch {epoch}: Average Negative Log-Likelihood: {nll_avg}")
+        nll_avg = tot_nll / len(testloader)
+        print(f"Epoch {epoch}: Average Testing Negative Log-Likelihood: {nll_avg}")
 
 
 # Define the custom transformation outside of the main function
