@@ -106,7 +106,11 @@ def main(args):
     optimizer = torch.optim.Adam(
         flow.parameters(), lr=args.lr)
 
-    #TODO fill in
+    train_nlls = []
+    test_nlls  = []
+    for epoch in range(1, args.epochs + 1):
+        train_nll = train(flow, trainloader, optimizer, epoch)
+        test_nll  = test(flow, testloader, model_save_filename, epoch, sample_shape)
 
 
 if __name__ == '__main__':
