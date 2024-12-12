@@ -10,6 +10,7 @@ from tqdm import trange
 import matplotlib.pyplot as plt
 import pickle
 import time
+import os
 import nice
 
 
@@ -27,10 +28,10 @@ def train(flow, trainloader, optimizer, epoch):
         # Track total NLL
         tot_nll += nll.item() 
 
-    avg_nll = tot_nll / len(trainloader)
-    print(f"Epoch {epoch}: Average Training Negative Log-Likelihhod: {avg_nll}")
+    nll_avg = tot_nll / len(trainloader)
+    print(f"Epoch {epoch}: Average Training Negative Log-Likelihhod: {nll_avg}")
     print(f"Epoch {epoch}: Training completed.")
-    return avg_nll
+    return nll_avg
 
 def test(flow, testloader, filename, epoch, sample_shape):
     flow.eval()  # set to inference mode
@@ -40,8 +41,14 @@ def test(flow, testloader, filename, epoch, sample_shape):
         a,b = samples.min(), samples.max()
         samples = (samples-a)/(b-a+1e-10) 
         samples = samples.view(-1,sample_shape[0],sample_shape[1],sample_shape[2])
-        timestamp = time.strftime('%Y%m%d-%H%M%S')
-        image_filename = f'./samples/{args.dataset}_{args.batch_size}_{args.coupling}_{args.coupling_type}_{args.mid_dim}_{args.hidden}_epoch{epoch}_{timestamp}.png'
+        timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
+
+        config_dir =f'./samples/{args.dataset}_{args.batch_size}_{args.coupling}_{args.coupling_type}_{args.mid_dim}_{args.hidden}/'
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+            print(f"Created directory: {config_dir}")
+
+        image_filename = config_dir + f'{args.dataset}_{args.batch_size}_{args.coupling}_{args.coupling_type}_{args.mid_dim}_{args.hidden}_epoch{epoch}_{timestamp}.png'
         torchvision.utils.save_image(torchvision.utils.make_grid(samples),
                                      image_filename)
         
@@ -56,7 +63,7 @@ def test(flow, testloader, filename, epoch, sample_shape):
 
         nll_avg = tot_nll / len(testloader)
         print(f"Epoch {epoch}: Average Testing Negative Log-Likelihood: {nll_avg}")
-
+    return nll_avg
 
 # Define the custom transformation outside of the main function
 def dequantize(x):
@@ -122,10 +129,34 @@ def main(args):
         test_nll  = test(flow, testloader, model_save_filename, epoch, sample_shape)
         train_nlls.append(train_nll)
         test_nlls.append(test_nll)
+    
+    #Plot the losses
+    epochs = range(1, args.epochs + 1)
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+
+    # Plot train losses on the primary y-axis
+    ax1.plot(epochs, train_nlls, label="Train Loss", color="blue")
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Train Loss", color="blue")
+    ax1.tick_params(axis='y', labelcolor="blue")
+
+    # Create a secondary y-axis for test losses
+    ax2 = ax1.twinx()
+    ax2.plot(epochs, test_nlls, label="Test Loss", color="red")
+    ax2.set_ylabel("Test Loss", color="red")
+    ax2.tick_params(axis='y', labelcolor="red")
+
+    # Add a title and legend
+    plt.title("Train and Test Loss Over Epochs")
+    fig.tight_layout()
+    plt.show()
 
     # Save the model and the results
-    torch.save(flow.state_dict(), f'./models/{args.dataset}_{args.coupling_type}.pt')
-    with open(f'./logs/{args.dataset}_{args.coupling_type}_nll.pkl', 'wb') as f:
+    timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
+    model_filename = f'./models/{args.dataset}_{args.batch_size}_{args.coupling}_{args.coupling_type}_{args.mid_dim}_{args.hidden}_epoch{epoch}_{timestamp}.pt'
+
+    torch.save(flow.state_dict(),model_filename)
+    with open(f'./logs/{args.dataset}_{args.batch_size}_{args.coupling}_{args.coupling_type}_{args.mid_dim}_{args.hidden}_epoch{epoch}_{timestamp}_nll.pkl', 'wb') as f:
         pickle.dump({'train_nll': train_nlls, 'test_nll': test_nlls}, f)
 
 if __name__ == '__main__':

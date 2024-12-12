@@ -257,7 +257,7 @@ class NICE(nn.Module):
 
         z, _ = self.scaling_layer(z, reverse=True)
         for layer in reversed(self.coupling_layers):
-            z, _ = layer(z, _, reverse=True)
+            z, _ = layer(z, 0, reverse=True)
         
         return z
 
