@@ -13,6 +13,8 @@ import nice
 
 def train(flow, trainloader, optimizer, epoch):
     flow.train()  # set to training mode
+    tot_nll     = 0
+    tot_samples = 0
     for inputs,_ in trainloader:
         inputs =  inputs.view(inputs.shape[0],inputs.shape[1]*inputs.shape[2]*inputs.shape[3]) #change  shape from BxCxHxW to Bx(C*H*W)
         inputs = inputs.to(flow.device) # Moves the inputs to the correct device
@@ -21,13 +23,20 @@ def train(flow, trainloader, optimizer, epoch):
         nll.backward()                  # Appling Backpropagation
         optimizer.step()                # Gradient Descent step
 
+        # Track total NLL and sample count
+        tot_nll     += nll.item() * inputs.size(0)
+        tot_samples +=  inputs.size(0)
+    
+    avg_nll = tot_nll / tot_samples
+    print(f"Epoch {epoch}: Average Training NLL: {avg_nll}")
     print(f"Epoch {epoch}: Training completed.")
+    return avg_nll
 
 def test(flow, testloader, filename, epoch, sample_shape):
     flow.eval()  # set to inference mode
     with torch.no_grad():
-        nll_tot = 0
-        count   = 0 
+        tot_nll     = 0
+        tot_samples = 0
         samples = flow.sample(100).cpu()
         a,b = samples.min(), samples.max()
         samples = (samples-a)/(b-a+1e-10) 
@@ -40,11 +49,11 @@ def test(flow, testloader, filename, epoch, sample_shape):
             inputs = inputs.view(inputs.shape[0],inputs.shape[1]*inputs.shape[2]*inputs.shape[3]) #change  shape from BxCxHxW to Bx(C*H*W) 
             inputs = inputs.to(flow.device) # Moves the inputs to the correct device
 
-            nll      = -flow(inputs).sum().item()
-            nll_tot += nll
-            count   += inputs.size(0)
+            nll          = -flow(inputs).sum().item()
+            tot_nll     += nll
+            tot_samples += inputs.size(0)
 
-        nll_avg = nll_tot / count
+        nll_avg = tot_nll / tot_samples
         print(f"Epoch {epoch}: Average Negative Log-Likelihood: {nll_avg}")
 
 def main(args):
