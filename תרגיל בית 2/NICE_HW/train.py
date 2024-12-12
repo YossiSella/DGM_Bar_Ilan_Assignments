@@ -8,6 +8,7 @@ from torchvision import transforms
 from collections import defaultdict
 from tqdm import trange
 import matplotlib.pyplot as plt
+import pickle
 import nice
 
 
@@ -106,12 +107,19 @@ def main(args):
     optimizer = torch.optim.Adam(
         flow.parameters(), lr=args.lr)
 
+    # Train and test the model
     train_nlls = []
     test_nlls  = []
     for epoch in range(1, args.epochs + 1):
         train_nll = train(flow, trainloader, optimizer, epoch)
         test_nll  = test(flow, testloader, model_save_filename, epoch, sample_shape)
+        train_nlls.append(train_nll)
+        test_nlls.append(test_nll)
 
+    # Save the model and the results
+    torch.save(flow.state_dict(), f'./models/{args.dataset}_{args.coupling_type}.pt')
+    with open(f'./logs/{args.dataset}_{args.coupling_type}_nll.pkl', 'wb') as f:
+        pickle.dump({'train_nll': train_nlls, 'test_nll': test_nlls}, f)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
