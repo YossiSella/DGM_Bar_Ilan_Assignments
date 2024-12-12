@@ -6,6 +6,8 @@ import torch.nn as nn
 from torch.distributions.transforms import Transform,SigmoidTransform,AffineTransform
 from torch.distributions import Uniform, TransformedDistribution
 import numpy as np
+
+
 """Additive coupling layer.
 """
 class AdditiveCoupling(nn.Module):
@@ -159,9 +161,9 @@ class Scaling(nn.Module):
             # Reverse the transfornation: x = y * exp(s)
             x = x * scale
 
-        log_det_j = torch.sum(self.scale)
+        log_det_J = torch.sum(self.scale)
 
-        return x, log_det_j
+        return x, log_det_J
 
 """Standard logistic distribution.
 """
@@ -251,12 +253,11 @@ class NICE(nn.Module):
         Returns:
             transformed tensor in data space X.
         """
-        z         = z.to(self.device)                           # Ensure input is on the correct device
-        log_det_J = torch.zeros(z.size(0), device=self.device)  # Initialize log_det_J for the layer, even though we do not care about it
-        
+        z = z.to(self.device)                           # Ensure input is on the correct device
+
         z, _ = self.scaling_layer(z, reverse=True)
         for layer in reversed(self.coupling_layers):
-            z, _ = layer(z, log_det_J, reverse=True)
+            z, _ = layer(z, _, reverse=True)
         
         return z
 
@@ -272,7 +273,9 @@ class NICE(nn.Module):
         log_det_J = torch.zeros(x.size(0), device=self.device)  # Initialize Jacobian determinant
         for layer in self.coupling_layers:
             x, log_det_J = layer(x, log_det_J, reverse=False)
-        x, log_det_J = self.scaling_layer(x, reverse=False)
+        x, log_det_J_scaling = self.scaling_layer(x, reverse=False)
+        
+        log_det_J += log_det_J_scaling # Adding the scaling layer los 
         
         return x, log_det_J
 
@@ -289,18 +292,11 @@ class NICE(nn.Module):
         x            = x.to(self.device) # Ensure input is on the correct device
         z, log_det_J = self.f(x)
         
-
         dequant_adj_term = torch.log(torch.tensor(256.0, device=self.device)) * self.in_out_dim  # Dequantization adjustment
         log_det_J       -= dequant_adj_term                                                      #log det for rescaling from [0.256] (after dequantization) to [0,1]
-        # z            = z.to(self.device)
-        # log_det_J    = log_det_J.to(self.device)
 
-        # if hasattr(self.prior, 'loc') and hasattr(self.prior, 'scale'):
-        #     self.prior.loc = self.prior.loc.to(self.device)
-        #     self.prior.scale = self.prior.scale.to(self.device)
-
-        log_ll           = torch.sum(self.prior.log_prob(z), dim=1)                              # Prior probability of z
-        # log_ll    = log_ll.to(self.device)
+        log_ll = torch.sum(self.prior.log_prob(z), dim=1) # Prior probability of z
+        log_ll = log_ll.to(self.device)
 
         return log_ll + log_det_J
 
