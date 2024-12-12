@@ -251,10 +251,12 @@ class NICE(nn.Module):
         Returns:
             transformed tensor in data space X.
         """
-        z = z.to(self.device) # Ensure input is on the correct device
-        for layer in reversed(self.coupling_layers):
-            z, _ = layer(z, None, reverse=True)
+        z         = z.to(self.device)                           # Ensure input is on the correct device
+        log_det_J = torch.zeros(z.size(0), device=self.device)  # Initialize log_det_J for the layer, even though we do not care about it
+        
         z, _ = self.scaling_layer(z, reverse=True)
+        for layer in reversed(self.coupling_layers):
+            z, _ = layer(z, log_det_J, reverse=True)
         
         return z
 
