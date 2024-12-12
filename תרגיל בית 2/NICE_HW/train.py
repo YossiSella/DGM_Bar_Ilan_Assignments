@@ -57,13 +57,20 @@ def test(flow, testloader, filename, epoch, sample_shape):
         nll_avg = tot_nll / tot_samples
         print(f"Epoch {epoch}: Average Negative Log-Likelihood: {nll_avg}")
 
+
+# Define the custom transformation outside of the main function
+def dequantize(x):
+    return x + torch.zeros_like(x).uniform_(0., 1. / 256.)
+
+
 def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     sample_shape = [1,28,28]
+    full_dim = sample_shape[0]*sample_shape[1]*sample_shape[2]
     transform  = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (1.,)),
-        transforms.Lambda(lambda x: x + torch.zeros_like(x).uniform_(0., 1./256.)) #dequantization
+        transforms.Lambda(dequantize) #dequantization
     ])
 
     if args.dataset == 'mnist':
@@ -79,7 +86,7 @@ def main(args):
         trainset = torchvision.datasets.FashionMNIST(root='~/torch/data/FashionMNIST',
             train=True, download=True, transform=transform)
         trainloader = torch.utils.data.DataLoader(trainset,
-            batch_size=batch_size, shuffle=True, num_workers=2)
+            batch_size=args.batch_size, shuffle=True, num_workers=2)
         testset = torchvision.datasets.FashionMNIST(root='./data/FashionMNIST',
             train=False, download=True, transform=transform)
         testloader = torch.utils.data.DataLoader(testset,
@@ -90,7 +97,7 @@ def main(args):
     model_save_filename = '%s_' % args.dataset \
              + 'batch%d_' % args.batch_size \
              + 'coupling%d_' % args.coupling \
-             + 'coupling_type%d_' % args.coupling_type \
+             + 'coupling_type%s_' % args.coupling_type \
              + 'mid%d_' % args.mid_dim \
              + 'hidden%d_' % args.hidden \
              + '.pt'
