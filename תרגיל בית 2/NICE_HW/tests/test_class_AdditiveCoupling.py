@@ -39,9 +39,10 @@ def test_additive_coupling_forward_and_reverse():
     assert torch.allclose(log_det_J, log_det_J_reverse), "Jacobian determinant changed during reverse transformation."
 
     # Check that x1 (unchanged part) remains unaltered
-    x_even, _ = x[:, ::2], x[:, 1::2]  # Split into even and odd
-    x_trans_even, _ = x_transformed[:, ::2], x_transformed[:, 1::2]
-    assert torch.allclose(x_even, x_trans_even), "Unchanged part of the input (x1) was altered."
+    mask        = torch.tensor([i % 2 == mask_config for i in range (in_out_dim)])
+    x_to_transform, x_no_change = x[:, mask], x[:, ~mask]  # Split into even and odd
+    x_out_trans, x_out_unchainged = x_transformed[:, mask], x_transformed[:, ~mask]
+    assert torch.allclose(x_no_change, x_out_unchainged), "Unchanged part of the input (x1) was altered."
 
     print("Test passed for Additive Coupling layer!")
 
