@@ -47,21 +47,21 @@ class AdditiveCoupling(nn.Module):
         Returns:
             transformed tensor and updated log-determinant of Jacobian.
         """
-        # Split inputs into x1 (unchanged) and x2 (tansformed)
-        x1 = x[:, self.mask]  # Part determined by the mask
-        x2 = x[:, ~self.mask] # Complementary part
+        # Split inputs into x1 (transformed) and x2 (unchanged)
+        x0 = x[:, self.mask]  # Part determined by the mask
+        x1 = x[:, ~self.mask] # Complementary part
 
         if reverse:
-            # Reverse transformation: x2 = x2' - t(x1)
-            x2 = x2 - self.network(x1)
+            # Reverse transformation: x0 = x0' - t(x1)
+            x0 = x0 - self.network(x1)
         else:
-            # Forward transformation: x2' = x2 + t(x1)
-            x2 = x2 + self.network(x1)
+            # Forward transformation: x0' = x0 + t(x1)
+            x0 = x0 + self.network(x1)
 
-        # Concatenate x1 and x2 back into the full tensor
+        # Concatenate x0 and x1 back into the full tensor
         x_out = torch.zeros_like(x)
-        x_out[:, self.mask]  = x1
-        x_out[:, ~self.mask] = x2
+        x_out[:, self.mask]  = x0
+        x_out[:, ~self.mask] = x1
 
         #log_det_J remains unchanged because the Jacobian determinant is 1
         return x_out, log_det_J
@@ -104,70 +104,28 @@ class AffineCoupling(nn.Module):
         Returns:
             transformed tensor and updated log-determinant of Jacobian.
         """
-        # Split input into x1 (unchanged) and x2 (transformed)
-        x1 = x[:, self.mask]
-        x2 = x[:, ~self.mask]
+        # Split input into x0 (transformed) and x1 (unchanged)
+        x0 = x[:, self.mask]
+        x1 = x[:, ~self.mask]
 
         # Compute scale and translation
-        scale_shift  = self.network(x2)            # Single network generates scale and shift
+        scale_shift  = self.network(x1)            # Single network generates scale and shift
         scale, shift = scale_shift.chunk(2, dim=1) # Split output to scale and shift
         scale        = torch.sigmoid(scale + 2.0)  # Apply sigmoid activation to ensure positivity
 
         if reverse:
-            # Reverse transformation: x2  = (x2' - t(x1)) / exp(s(x1))
-            x1         = (x1 - shift) / scale
-            # log_det_J  = log_det_J - torch.sum(torch.log(scale), dim=1)
+            # Reverse transformation: x0  = (x0' - t(x1)) / exp(s(x1))
+            x0         = (x0 - shift) / scale
+            log_det_J  = log_det_J - torch.sum(torch.log(scale))
         else:
-            # Forward transformation: x2' = x2' * exp(s(x1)) + t(x1))
-            x1         = x1 * scale + shift
-            # log_det_J  = log_det_J + torch.sum(torch.log(scale), dim=1)
+            # Forward transformation: x0' = x0' * exp(s(x1)) + t(x1))
+            x0         = x0 * scale + shift
+            log_det_J  = log_det_J + torch.sum(torch.log(scale))
 
         # Combine x1 and x2 back into the full tensor
-        x_out                = torch.zeros_like(x)
-        x_out[:, self.mask]  = x1
-        x_out[:, self.mask] = x2
-
-
-
-        x_even, x_odd = x[:, ::2], x[:, 1::2]
-        if self.mask_config:
-            x_even, x_odd = x_odd, x_even
-
-            
-        y = self.network(x_odd)
-        scale, shift = y.chunk(2, dim=1)
-        scale = torch.sigmoid(scale + 2.)
-        if not reverse:
-            x_even = scale * x_even + shift
-            log_det_J += torch.sum(torch.log(scale), dim=1)
-        else:
-            x_even = (x_even - shift) / scale
-            log_det_J -= torch.sum(torch.log(scale), dim=1)
-        if self.mask_config:
-            x_even, x_odd = x_odd, x_even
-
-              # 3. Compare results
-        print("x1_mask:", x1)
-        print("x2_mask:", x2)
-        print("x_even:", x_even)
-        print("x_odd:", x_odd)
-
-        # Check if the results are the same
-        are_equal_x1_x_even = torch.allclose(x1, x_even)
-        are_equal_x2_x_odd = torch.allclose(x2, x_odd)
-        are_equal_x1_x_odd = torch.allclose(x1, x_odd)
-        are_equal_x2_x_even = torch.allclose(x2, x_even)
-
-        if  self.mask_config:
-            print(f"x1_mask and x_even are equal: {are_equal_x1_x_even}")
-            print(f"x2_mask and x_odd are equal: {are_equal_x2_x_odd}")
-        else:
-            print(f"x1_mask and x_odd are equal: {are_equal_x1_x_odd}")
-            print(f"x2_mask and x_even are equal: {are_equal_x2_x_even}")
-
-
-        x_out = torch.empty_like(x)
-        x_out[:, ::2], x_out[:, 1::2] = x_even, x_odd
+        x_out               = torch.zeros_like(x)
+        x_out[:, self.mask]  = x0
+        x_out[:, ~self.mask] = x1
 
         return x_out, log_det_J
 
@@ -200,7 +158,7 @@ class Scaling(nn.Module):
             # Reverse the transfornation: x = y / exp(s)
             x = x / scale
         else:
-            # Reverse the transfornation: x = y * exp(s)
+            # Transfornation: x = y * exp(s)
             x = x * scale
 
         log_det_J = torch.sum(self.scale)
