@@ -6,7 +6,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from collections import defaultdict
-from tqdm import trange
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import pickle
 import time
@@ -17,7 +17,7 @@ import nice
 def train(flow, trainloader, optimizer, epoch):
     flow.train()  # set to training mode
     tot_nll     = 0
-    for inputs,_ in trainloader:
+    for inputs,_ in tqdm(trainloader):
         inputs =  inputs.view(inputs.shape[0],inputs.shape[1]*inputs.shape[2]*inputs.shape[3]) #change  shape from BxCxHxW to Bx(C*H*W)
         inputs = inputs.to(flow.device) # Moves the inputs to the correct device
         optimizer.zero_grad()           # Sets the gradiant to zero after every iteration
@@ -53,7 +53,7 @@ def test(flow, testloader, filename, epoch, sample_shape):
                                      image_filename)
         
         # Compute negative log-likelihood
-        for inputs, _ in testloader:
+        for inputs, _ in tqdm(testloader):
             inputs = inputs.view(inputs.shape[0],inputs.shape[1]*inputs.shape[2]*inputs.shape[3]) #change  shape from BxCxHxW to Bx(C*H*W) 
             inputs = inputs.to(flow.device) # Moves the inputs to the correct device
             nll          = -flow(inputs).mean().item()
