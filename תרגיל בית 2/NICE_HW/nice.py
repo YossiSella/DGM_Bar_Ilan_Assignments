@@ -161,7 +161,7 @@ class Scaling(nn.Module):
             # Transfornation: x = y * exp(s)
             x = x * scale
 
-        log_det_J = torch.sum(self.scale)
+        log_det_J = torch.sum(torch.log(scale))
 
         return x, log_det_J
 
