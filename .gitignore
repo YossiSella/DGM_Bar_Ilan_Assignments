@@ -1,0 +1,19 @@
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]
+
+# Ignore models
+models/
+
+# Ignore samples
+samples/
+
+# Ignore data files - datasets
+data/
+
+# Ignore plots
+plots/
+
+# Ignore documents
+*.docx
+*.pdf
