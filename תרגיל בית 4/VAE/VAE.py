@@ -49,7 +49,13 @@ class Model(nn.Module):
             mu = torch.zeros((sample_size,self.latent_dim)).to(self.device)
         if logvar == None:
             logvar = torch.zeros((sample_size,self.latent_dim)).to(self.device)
-        #TODO
+        
+        # Reparametrization trick
+        std = torch.exp(0.5 * logvar) #standard deviation
+        eps = torch.rand_like(std)    #random noise ~ N(0,I)
+        
+        z = mu + std * eps
+        return z
 
 
     def z_sample(self, mu, logvar):
