@@ -39,12 +39,17 @@ class Model(nn.Module):
 
 
     def sample(self,sample_size,mu=None,logvar=None):
-        '''
-        :param sample_size: Number of samples
-        :param mu: z mean, None for prior (init with zeros)
-        :param logvar: z logstd, None for prior (init with zeros)
-        :return:
-        '''
+        """
+        Generate samples from the latent space.
+
+        Args:
+            sample_size (int): Number of samples to generate.
+            mu (torch.Tensor): Mean of the latent space distribution (default: None, uses prior).
+            logvar (torch.Tensor): Log variance of the latent space distribution (default: None, uses prior).
+
+        Returns:
+            torch.Tensor: Generated samples of shape (sample_size, latent_dim).
+        """
         if mu==None:
             mu = torch.zeros((sample_size,self.latent_dim)).to(self.device)
         if logvar == None:
@@ -59,13 +64,22 @@ class Model(nn.Module):
 
 
     def z_sample(self, mu, logvar):
-        
+        """
+        Sample z using the reparameterization trick.
+
+        Args:
+            mu (torch.Tensor): Mean of the posterior distribution.
+            logvar (torch.Tensor): Log variance of the posterior distribution.
+
+        Returns:
+            torch.Tensor: Sampled latent variables.
+        """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + std * eps
 
     def loss(self,x,recon,mu,logvar):
-        #TODO
+
         pass
 
     def forward(self, x):
