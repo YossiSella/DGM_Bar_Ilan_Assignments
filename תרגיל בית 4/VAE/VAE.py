@@ -52,15 +52,17 @@ class Model(nn.Module):
         
         # Reparametrization trick
         std = torch.exp(0.5 * logvar) #standard deviation
-        eps = torch.rand_like(std)    #random noise ~ N(0,I)
+        eps = torch.randn_like(std)    #random noise ~ N(0,I)
         
         z = mu + std * eps
         return z
 
 
     def z_sample(self, mu, logvar):
-        #TODO
-        pass
+        
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + std * eps
 
     def loss(self,x,recon,mu,logvar):
         #TODO
