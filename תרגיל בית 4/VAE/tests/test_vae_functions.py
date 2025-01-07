@@ -42,3 +42,19 @@ def test_z_sample():
 
     # Check device
     assert z.device == device, f"Expected device {device}, got {z.device}"
+
+def test_loss():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    latent_dim = 10
+    model = Model(latent_dim, device)
+
+    batch_size = 5
+    x = torch.rand((batch_size, 1, 28, 28)).to(device)
+    recon = torch.rand((batch_size, 1, 28, 28)).to(device)
+    mu = torch.zeros((batch_size, latent_dim)).to(device)
+    logvar = torch.zeros((batch_size, latent_dim)).to(device)
+
+    loss = model.loss(x, recon, mu, logvar)
+
+    # Check loss is scalar
+    assert isinstance(loss.item(), float), f"Loss should be a scalar, got {type(loss)}"
