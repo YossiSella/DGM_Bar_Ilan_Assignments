@@ -79,8 +79,25 @@ class Model(nn.Module):
         return mu + std * eps
 
     def loss(self,x,recon,mu,logvar):
+        """
+        Compute the ELBO loss.
 
-        pass
+        Args:
+            x (torch.Tensor): Original input images.
+            recon (torch.Tensor): Reconstructed images.
+            mu (torch.Tensor): Mean of the posterior distribution.
+            logvar (torch.Tensor): Log variance of the posterior distribution.
+
+        Returns:
+            torch.Tensor: Total ELBO loss.
+        """
+        #Binary cross-entropy reconstruction loss
+        recon_loss = F.binary_cross_entropy(recon, x, reduction='sum')
+
+        #KL divegence
+        kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+        return recon_loss + kl_div
 
     def forward(self, x):
         #TODO
