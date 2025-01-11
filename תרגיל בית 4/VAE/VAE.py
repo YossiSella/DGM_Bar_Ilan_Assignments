@@ -36,6 +36,7 @@ class Model(nn.Module):
             nn.ConvTranspose2d(32, 1, 4, 1, 2),  # B, 1, 28, 28
             nn.Sigmoid()
         )
+        self.to(device)
 
 
     def sample(self, sample_size, mu=None, logvar=None):
@@ -114,7 +115,7 @@ class Model(nn.Module):
         logvar = self.logvar(x)
 
         # Sample latent variables
-        z = self.sample(mu, logvar)
+        z = self.z_sample(mu, logvar)
 
         # Decode
         z     = self.upsample(z).view(batch_size, 64, 7, 7)
