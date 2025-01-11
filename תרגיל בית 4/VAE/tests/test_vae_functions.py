@@ -58,3 +58,23 @@ def test_loss():
 
     # Check loss is scalar
     assert isinstance(loss.item(), float), f"Loss should be a scalar, got {type(loss)}"
+
+def test_forward():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    latent_dim = 10
+    model = Model(latent_dim, device)
+
+    batch_size = 5
+    x = torch.rand((batch_size, 1, 28, 28)).to(device)
+    
+    recon, mu, logvar = model(x)
+
+    # Check shapes
+    assert recon.shape == x.shape, f"Expected shape {x.shape}, got {recon.shape}"
+    assert mu.shape == (batch_size, latent_dim), f"Expected shape ({batch_size}, {latent_dim}), got {mu.shape}"
+    assert logvar.shape == (batch_size, latent_dim), f"Expected shape ({batch_size}, {latent_dim}), got {logvar.shape}"
+    
+    # Check devices
+    assert recon.device == device, f"Expected device {device}, got {recon.device}"
+    assert mu.device == device, f"Expected device {device}, got {mu.device}"
+    assert logvar.device == device, f"Expected device {device}, got {logvar.device}"
