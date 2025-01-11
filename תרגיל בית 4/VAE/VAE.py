@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Model(nn.Module):
-    def __init__(self, latent_dim,device):
+    def __init__(self, latent_dim, device):
         """Initialize a VAE.
 
         Args:
@@ -38,7 +38,7 @@ class Model(nn.Module):
         )
 
 
-    def sample(self,sample_size,mu=None,logvar=None):
+    def sample(self, sample_size, mu=None, logvar=None):
         """
         Generate samples from the latent space.
 
@@ -74,11 +74,12 @@ class Model(nn.Module):
         Returns:
             torch.Tensor: Sampled latent variables.
         """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
+        # Reparametrization trick
+        std = torch.exp(0.5 * logvar) #standard deviation
+        eps = torch.randn_like(std)   #random noise ~ N(0,I) 
         return mu + std * eps
 
-    def loss(self,x,recon,mu,logvar):
+    def loss(self, x, recon, mu, logvar):
         """
         Compute the ELBO loss.
 
@@ -96,7 +97,7 @@ class Model(nn.Module):
 
         #KL divegence
         kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-
+        
         return recon_loss + kl_div
 
     def forward(self, x):
