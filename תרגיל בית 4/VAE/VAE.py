@@ -97,5 +97,27 @@ class Model(nn.Module):
         return recon_loss + kl_div
 
     def forward(self, x):
-        #TODO
-        pass
+        """
+        Forward pass through the VAE.
+
+        Args:
+            x (torch.Tensor): Input images.
+
+        Returns:
+            tuple: Reconstructed images, mu, logvar
+        """
+        batch_size = x.size(0)
+        
+        # Encode
+        x      = self.encoder(x).view(batch_size, -1)
+        mu     = self.mu(x)
+        logvar = self.logvar(x)
+
+        # Sample latent variables
+        z = self.sample(mu, logvar)
+
+        # Decode
+        z     = self.upsample(z).view(batch_size, 64, 7, 7)
+        recon = self.decoder(z)
+
+        return recon, mu, logvar
