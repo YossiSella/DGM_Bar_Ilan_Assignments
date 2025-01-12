@@ -9,7 +9,29 @@ from VAE import Model
 
 def train(vae, trainloader, optimizer, epoch):
     vae.train()  # set to training mode
-    #TODO
+    
+    tot_loss = 0
+    for batch_idx, (x, _) in enumerate(trainloader):
+        x = x.to(vae.device)                  # Moves the input images to the correct device
+        recon, mu, logvar = vae(x)            # Forward pass
+        loss = vae.loss(x, recon, mu, logvar) # Compute the loss
+        
+        # Backward pass and optimization
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # Track total loss
+        tot_loss += loss.item()
+
+        # Log progress every 100 batches
+        if batch_idx % 100 == 0: 
+            print(f"Epoch {epoch}, Batch {batch_idx}/{len(trainloader)}: Loss = {loss.item(): .4f}")
+        
+    # Compute average loss for the epoch
+    avg_loss = tot_loss / len(trainloader)
+    print(f"Epoch {epoch}: Average Training Loss: {avg_loss: .4f}")
+    return avg_loss
 
 
 def test(vae, testloader, filename, epoch):
