@@ -50,7 +50,7 @@ def test(vae, testloader, filename, epoch):
             # Save samples from the first batch
             if batch_idx == 0: 
                 sample_images = recon[:100] # Takes the first 100 images
-                torchvision.utils.save_image(sample_images, f"{filename}_epoch{epoch}_.png", nrow=4, normalize=True)
+                torchvision.utils.save_image(sample_images, f"./samples/{filename}_epoch{epoch}_.png", nrow=4, normalize=True)
 
     # Compute average loss for the test set
     avg_loss = tot_loss / len(testloader)
@@ -101,7 +101,7 @@ def main(args):
 
     for epoch in range(1, args.epochs + 1):
         train_loss = train(vae, trainloader, optimizer, epoch)
-        test_loss  = test(vae, trainloader, optimizer, epoch)
+        test_loss  = test(vae, trainloader, filename, epoch)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
