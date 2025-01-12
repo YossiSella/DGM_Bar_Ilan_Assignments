@@ -57,13 +57,15 @@ def test(vae, testloader, filename, epoch):
     print(f"Epoch {epoch}: Average Test Loss: {avg_loss: .4f}")
     return avg_loss
 
-
+# Define the custom transformation outside of the main function
+def dequantize(x):
+    return x + torch.zeros_like(x).uniform_(0., 1. / 256.)
 
 def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     transform  = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Lambda(lambda x: x + torch.zeros_like(x).uniform_(0., 1./256.)), #dequantization
+        transforms.Lambda(dequantize), #dequantization
         transforms.Normalize((0.,), (257./256.,)), #rescales to [0,1]
 
     ])
