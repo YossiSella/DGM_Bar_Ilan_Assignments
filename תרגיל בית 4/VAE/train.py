@@ -97,7 +97,9 @@ def main(args):
     optimizer = torch.optim.Adam(
         vae.parameters(), lr=args.lr)
 
-    #TODO
+    for epoch in range(1, args.epochs + 1):
+        train_loss = train(vae, trainloader, optimizer, epoch)
+        test_loss  = test(vae, trainloader, optimizer, epoch)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
