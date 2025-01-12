@@ -36,9 +36,27 @@ def train(vae, trainloader, optimizer, epoch):
 
 def test(vae, testloader, filename, epoch):
     vae.eval()  # set to inference mode
+    
+    tot_loss = 0
     with torch.no_grad():
-        pass
-        #TODO
+        for batch_idx, (x, _) in enumerate(testloader):
+            x = x.to(vae.device)
+            recon, mu, logvar = vae(x)            # Forward pass
+            loss = vae.loss(x, recon, mu, logvar) # Compute the loss
+        
+            # Track total loss
+            tot_loss += loss.item()
+
+            # Save samples from the first batch
+            if batch_idx == 0: 
+                sample_images = recon[:100] # Takes the first 100 images
+                torchvision.utils.save_image(sample_images, f"{filename}_epoch{epoch}_.png", nrow=4, normalize=True)
+
+    # Compute average loss for the test set
+    avg_loss = tot_loss / len(testloader)
+    print(f"Epoch {epoch}: Average Test Loss: {avg_loss: .4f}")
+    return avg_loss
+
 
 
 def main(args):
