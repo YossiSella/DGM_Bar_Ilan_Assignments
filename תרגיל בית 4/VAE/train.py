@@ -7,6 +7,9 @@ from torchvision import transforms
 import numpy as np
 from VAE import Model
 
+import time
+import os
+
 def train(vae, trainloader, optimizer, epoch):
     vae.train()  # set to training mode
     
@@ -34,11 +37,31 @@ def train(vae, trainloader, optimizer, epoch):
     return avg_loss
 
 
-def test(vae, testloader, filename, epoch):
+def test(vae, testloader, filename, epoch, sample_shape):
     vae.eval()  # set to inference mode
     
     tot_loss = 0
     with torch.no_grad():
+        samples = vae.sample(100)
+        samples = vae.upsample(samples)
+        samples = samples.view(-1, 64, 7, 7)
+        samples = vae.decoder(samples).cpu()
+        a, b    = samples.min(), samples.max()
+        samples = (samples - a) / (b - a + 1e-10)
+        samples = samples.view(-1, sample_shape[0], sample_shape[1], sample_shape[2])
+
+        # Sample saving handling
+        timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
+        config_dir =f'./samples/{args.dataset}_{args.batch_size}_{args.latent_dim}/'
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+            print(f"Created directory: {config_dir}")
+
+        image_filename = config_dir + f'{args.dataset}_{args.batch_size}_{args.latent_dim}_epoch{epoch}_{timestamp}.png'
+        torchvision.utils.save_image(torchvision.utils.make_grid(samples),
+                                     image_filename)
+     
+        # Test loop
         for batch_idx, (x, _) in enumerate(testloader):
             x = x.to(vae.device)
             recon, mu, logvar = vae(x)            # Forward pass
@@ -46,11 +69,6 @@ def test(vae, testloader, filename, epoch):
         
             # Track total loss
             tot_loss += loss.item()
-
-            # Save samples from the first batch
-            if batch_idx == 0: 
-                sample_images = recon[:100] # Takes the first 100 images
-                torchvision.utils.save_image(sample_images, f"./samples/{filename}_epoch{epoch}_.png", nrow=4, normalize=True)
 
     # Compute average loss for the test set
     avg_loss = tot_loss / len(testloader)
@@ -63,6 +81,7 @@ def dequantize(x):
 
 def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    sample_shape = [1,28,28] # mnist image shape
     transform  = transforms.Compose([
         transforms.ToTensor(),
         transforms.Lambda(dequantize), #dequantization
@@ -101,7 +120,7 @@ def main(args):
 
     for epoch in range(1, args.epochs + 1):
         train_loss = train(vae, trainloader, optimizer, epoch)
-        test_loss  = test(vae, trainloader, filename, epoch)
+        test_loss  = test(vae, trainloader, filename, epoch, sample_shape)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
@@ -122,7 +141,7 @@ if __name__ == '__main__':
                         type=int,
                         default=64)
 
-    parser.add_argument('--latent-dim',
+    parser.add_argument('--latent_dim',
                         help='.',
                         type=int,
                         default=100)
