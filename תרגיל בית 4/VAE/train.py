@@ -10,7 +10,7 @@ from VAE import Model
 import time
 import os
 from tqdm import tqdm
-
+import pickle
 
 def train(vae, trainloader, optimizer, epoch):
     vae.train()  # set to training mode
@@ -125,10 +125,23 @@ def main(args):
     optimizer = torch.optim.Adam(
         vae.parameters(), lr=args.lr)
 
+    train_losses = []
+    test_losses  = []
     for epoch in range(1, args.epochs + 1):
         train_loss = train(vae, trainloader, optimizer, epoch)
         test_loss  = test(vae, trainloader, filename, epoch, sample_shape)
+        train_losses.append(train_loss)
+        test_losses.append(test_loss)
         print(f"Epoch {epoch}: Average Training Loss: {train_loss: .4f}, Average Test Loss: {test_loss: .4f}")
+
+    # Save the model and the results
+    timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
+    model_filename = f'./models/{args.dataset}_{args.batch_size}_{args.latent_dim}_epoch{epoch}_{timestamp}.pt'
+
+    torch.save(vae.state_dict(), model_filename)
+    with open(f'./logs/{args.dataset}_{args.batch_size}_{args.latent_dim}_epoch{epoch}_{timestamp}_nll.pkl', 'wb') as f:
+        pickle.dump({'train_nll': train_losses, 'test_nll': test_losses}, f)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
