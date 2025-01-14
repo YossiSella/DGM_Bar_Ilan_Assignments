@@ -9,12 +9,16 @@ from VAE import Model
 
 import time
 import os
+from tqdm import tqdm
+
 
 def train(vae, trainloader, optimizer, epoch):
     vae.train()  # set to training mode
     
     tot_loss = 0
-    for batch_idx, (x, _) in enumerate(trainloader):
+    progress_bar = tqdm(enumerate(trainloader), total=len(trainloader), desc=f"Epoch {epoch}")
+
+    for batch_idx, (x, _) in progress_bar:
         x = x.to(vae.device)                  # Moves the input images to the correct device
         recon, mu, logvar = vae(x)            # Forward pass
         loss = vae.loss(x, recon, mu, logvar) # Compute the loss
@@ -27,6 +31,9 @@ def train(vae, trainloader, optimizer, epoch):
         # Track total loss
         tot_loss += loss.item()
 
+        # Update progress bar
+        progress_bar.set_postfix(loss=loss.item())
+
         # Log progress every 100 batches
         if batch_idx % 100 == 0: 
             print(f"Epoch {epoch}, Batch {batch_idx}/{len(trainloader)}: Loss = {loss.item(): .4f}")
@@ -34,6 +41,7 @@ def train(vae, trainloader, optimizer, epoch):
     # Compute average loss for the epoch
     avg_loss = tot_loss / len(trainloader)
     print(f"Epoch {epoch}: Average Training Loss: {avg_loss: .4f}")
+    print(f"Epoch {epoch}: Training completed.")
     return avg_loss
 
 
@@ -62,7 +70,9 @@ def test(vae, testloader, filename, epoch, sample_shape):
                                      image_filename)
      
         # Test loop
-        for batch_idx, (x, _) in enumerate(testloader):
+        progress_bar = tqdm(enumerate(testloader), total=len(testloader), desc=f"Test Epoch {epoch}")
+
+        for batch_idx, (x, _) in progress_bar:
             x = x.to(vae.device)
             recon, mu, logvar = vae(x)            # Forward pass
             loss = vae.loss(x, recon, mu, logvar) # Compute the loss
@@ -70,9 +80,12 @@ def test(vae, testloader, filename, epoch, sample_shape):
             # Track total loss
             tot_loss += loss.item()
 
-    # Compute average loss for the test set
-    avg_loss = tot_loss / len(testloader)
-    print(f"Epoch {epoch}: Average Test Loss: {avg_loss: .4f}")
+            # Update progress bar
+            progress_bar.set_postfix(loss=loss.item())
+    
+        # Compute average loss for the test set
+        avg_loss = tot_loss / len(testloader)
+        print(f"Epoch {epoch}: Average Test Loss: {avg_loss: .4f}")
     return avg_loss
 
 # Define the custom transformation outside of the main function
