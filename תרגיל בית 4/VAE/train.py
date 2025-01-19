@@ -139,8 +139,8 @@ def main(args):
     model_filename = f'./models/{args.dataset}_{args.batch_size}_{args.latent_dim}_epoch{epoch}_{timestamp}.pt'
 
     torch.save(vae.state_dict(), model_filename)
-    with open(f'./logs/{args.dataset}_{args.batch_size}_{args.latent_dim}_epoch{epoch}_{timestamp}_nll.pkl', 'wb') as f:
-        pickle.dump({'train_nll': train_losses, 'test_nll': test_losses}, f)
+    with open(f'./logs/{args.dataset}_{args.batch_size}_{args.latent_dim}_epoch{epoch}_{timestamp}_loss.pkl', 'wb') as f:
+        pickle.dump({'train_loss': train_losses, 'test_loss': test_losses}, f)
 
 
 if __name__ == '__main__':
