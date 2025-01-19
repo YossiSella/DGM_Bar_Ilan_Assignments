@@ -11,6 +11,7 @@ import time
 import os
 from tqdm import tqdm
 import pickle
+import matplotlib.pyplot as plt
 
 def train(vae, trainloader, optimizer, epoch):
     vae.train()  # set to training mode
@@ -133,6 +134,27 @@ def main(args):
         train_losses.append(train_loss)
         test_losses.append(test_loss)
         print(f"Epoch {epoch}: Average Training Loss: {train_loss: .4f}, Average Test Loss: {test_loss: .4f}")
+
+    #Plot the losses
+    epochs = range(1, args.epochs + 1)
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+
+    # Plot train losses on the primary y-axis
+    ax1.plot(epochs, train_losses, label="Train Loss", color="blue")
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Train Loss", color="blue")
+    ax1.tick_params(axis='y', labelcolor="blue")
+
+    # Create a secondary y-axis for test losses
+    ax2 = ax1.twinx()
+    ax2.plot(epochs, test_losses, label="Test Loss", color="red")
+    ax2.set_ylabel("Test Loss", color="red")
+    ax2.tick_params(axis='y', labelcolor="red")
+
+    # Add a title and legend
+    plt.title("Train and Test Loss Over Epochs")
+    fig.tight_layout()
+    plt.show()
 
     # Save the model and the results
     timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
