@@ -4,7 +4,6 @@ This repository contains programming assignments for my Deep Generative Models (
 
 ## Structure
 - `תרגיל בית 2/`: NICE flow model implementation (wet homwork 1).
-- `תרגיל בית 4/`: VAE model implementation (wet homwork 2).
 
 ## Instructions
 1. Clone the repository: `git clone https://github.com/YossiSella/DGM_Bar_Ilan_Assignments.git`

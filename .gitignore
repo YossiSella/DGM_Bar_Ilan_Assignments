@@ -8,9 +8,6 @@ models/
 # Ignore samples
 samples/
 
-# Ignore logs
-*.pkl
-
 # Ignore data files - datasets
 data/
 
