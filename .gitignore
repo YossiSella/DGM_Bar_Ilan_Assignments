@@ -20,3 +20,12 @@ plots/
 # Ignore documents
 *.docx
 *.pdf
+
+# Ignore .idea
+.idea/
+
+# Ignore .ipynb
+*.ipynb
+
+# Ignore .DS_Store
+*.DS_Store
