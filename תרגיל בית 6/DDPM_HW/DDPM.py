@@ -44,16 +44,25 @@ class DDPM(nn.Module):
 
         return x.to('cpu')
 
-    def forward(self, x,epsilon,t,y):
+    def forward(self, x, epsilon, t, y):
         '''
-        Given a clean image x, random noise epsilon and time t, sample x_t and return the noise estimation given x_t
-        :param x: Clean MNIST images
-        :param epislon: i.i.d normal noise size of x
-        :param t: time from 1 to time step
-        :param y: labels
-        :return: estimated_epsilon
+        Given a clean image x, random noise epsilon and time t, sample x_t and return the noise estimation given x_t using a UNet.
+        
+        :param x:       Clean MNIST images [Batch size, 1, 28, 28]. 
+        :param epislon: i.i.d normal noise with shape of x.
+        :param t:       Time from 1 to time step t. Shape [batch_size]
+        :param y:       Labels. Shape [batch_size]
+
+        :return:        estimated_epsilon
         '''
-        #TODO
+        # Retrieve alpha_bar at timestep t, reshaped for broadcasting
+        alpha_bar_t = self.alpha_bars[t].reshape(-1, 1, 1, 1)
 
+        # Create noisy images x_t according to DDPM formulation
+        x_t = torch.sqrt(alpha_bar_t) * x + torch.sqrt(1 - alpha_bar_t) * epsilon
 
+        # Estimate epsilin from noisy images using UNet
+        estimated_epsilon = self.model(x_t , t, y)
+
+        return estimated_epsilon
 
