@@ -6,15 +6,35 @@ from torchvision import transforms, utils
 import numpy as np
 from DDPM import DDPM
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 def train(model, trainloader, optimizer, epoch,device):
-    model.train()  # set to training mode
-    for image, target in trainloader:
-        noise = torch.randn_like(image).to(device)
-        image = image.to(device)
-        target = target.to(device)
-        # TODO
 
+    progress_bar = tqdm(trainloader, total=len(trainloader), desc=f"Epoch {epoch:02d}")
+    losses = []
+
+    model.train()  # set to training mode
+    for image, target in progress_bar:
+        noise  = torch.randn_like(image).to(device)
+        image  = image.to(device)
+        target = target.to(device)
+        
+        t = torch.randint(low=0, high=model.timesteps, size=(image.size(0),), device=device).long
+
+        epsilon_pred = model(image, noise, t, target)
+
+        loss = model.loss(epsilon_pred, noise)
+
+
+        loss = model.loss(epsilon_pred, noise)
+        loss.backward()
+        optimizer.step()
+        
+        losses.append(loss.item())
+
+    mean_loss = float(np.mean(losses))
+    print(f"► Epoch {epoch:02d} | loss = {mean_loss:.4f}")
+    return mean_loss
 
 def sample(model,epoch):
     model.eval()
