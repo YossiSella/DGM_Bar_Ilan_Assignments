@@ -36,7 +36,7 @@ class DDPM(nn.Module):
     def sample(self):
         '''
         Generates 100 MNIST samples conditioned on digits [0-9]*10.
-        
+
         :return: samples 100 images conditioned on y =torch.tensor([0,1,2,3,4,5,6,7,8,9]*10).to(self.device)
         '''
         y = torch.tensor([0,1,2,3,4,5,6,7,8,9]*10).to(self.device)
@@ -51,7 +51,7 @@ class DDPM(nn.Module):
             # Compute the coefficients for updating x_t
             alpha     = self.alphas[t]
             alpha_bar = self.alpha_bars[t]
-            beta     = self.betas[t]
+            beta      = self.betas[t]
 
             # Update step for DDPM reverse diffusion
             x = (1 / torch.sqrt(alpha)) * (x - ((beta / torch.sqrt(1 - alpha_bar)) * epsilon_pred))
@@ -81,8 +81,7 @@ class DDPM(nn.Module):
         # Create noisy images x_t according to DDPM formulation
         x_t = torch.sqrt(alpha_bar_t) * x + torch.sqrt(1 - alpha_bar_t) * epsilon
 
-        # Estimate epsilin from noisy images using UN
-        # et
+        # Estimate epsilin from noisy images using UNet
         estimated_epsilon = self.model(x_t , t, y)
 
         return estimated_epsilon
