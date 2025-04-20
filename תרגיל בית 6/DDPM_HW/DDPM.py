@@ -35,12 +35,32 @@ class DDPM(nn.Module):
 
     def sample(self):
         '''
-
+        Generates 100 MNIST samples conditioned on digits [0-9]*10.
+        
         :return: samples 100 images conditioned on y =torch.tensor([0,1,2,3,4,5,6,7,8,9]*10).to(self.device)
         '''
         y = torch.tensor([0,1,2,3,4,5,6,7,8,9]*10).to(self.device)
         x = torch.randn(100,1,28,28).to(self.device)
-        #TODO
+        
+        for t in reversed(range(self.timesteps)):
+            t_batch = torch.full((x.size(0),), t, device= self.device, dtype= torch.long)
+
+            # Predict noise at timestep t
+            epsilon_pred = self.model(x, t_batch, y)
+
+            # Compute the coefficients for updating x_t
+            alpha     = self.alphas[t]
+            alpha_bar = self.alpha_bars[t]
+            beta     = self.betas[t]
+
+            # Update step for DDPM reverse diffusion
+            x = (1 / torch.sqrt(alpha)) * (x - ((beta / torch.sqrt(1 - alpha_bar)) * epsilon_pred))
+
+            # Add noise for all timesteps except the last (at t=0 the image is clean)
+            if t > 0:
+                noise = torch.randn_like(x)
+                sigma = torch.sqrt(beta)
+                x    += sigma * noise
 
         return x.to('cpu')
 
@@ -61,8 +81,10 @@ class DDPM(nn.Module):
         # Create noisy images x_t according to DDPM formulation
         x_t = torch.sqrt(alpha_bar_t) * x + torch.sqrt(1 - alpha_bar_t) * epsilon
 
-        # Estimate epsilin from noisy images using UNet
+        # Estimate epsilin from noisy images using UN
+        # et
         estimated_epsilon = self.model(x_t , t, y)
 
         return estimated_epsilon
+    
 
