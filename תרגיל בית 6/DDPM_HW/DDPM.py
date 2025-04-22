@@ -82,7 +82,7 @@ class DDPM(nn.Module):
         x_t = torch.sqrt(alpha_bar_t) * x + torch.sqrt(1 - alpha_bar_t) * epsilon
 
         # Estimate epsilin from noisy images using UNet
-        estimated_epsilon = self.model(x_t , t, y)
+        estimated_epsilon = self.model(x_t, t, y)
 
         return estimated_epsilon
     

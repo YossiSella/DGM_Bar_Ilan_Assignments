@@ -19,14 +19,13 @@ def train(model, trainloader, optimizer, epoch,device):
         image  = image.to(device)
         target = target.to(device)
         
-        t = torch.randint(low=0, high=model.timesteps, size=(image.size(0),), device=device).long
+        t = torch.randint(low=0, high=model.timesteps, size=(image.size(0),), device=device).long()
 
         epsilon_pred = model(image, noise, t, target)
 
         loss = model.loss(epsilon_pred, noise)
 
-
-        loss = model.loss(epsilon_pred, noise)
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         
