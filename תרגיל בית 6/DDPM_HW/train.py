@@ -7,6 +7,10 @@ import numpy as np
 from DDPM import DDPM
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import time
+import os
+import pickle
+
 
 def train(model, trainloader, optimizer, epoch,device):
 
@@ -44,8 +48,18 @@ def sample(model,epoch):
         grid_image = grid_image.numpy().transpose((1, 2, 0))  # Convert from CxHxW to HxWxC
         plt.imshow(grid_image, cmap='gray')
         plt.axis('off')  # Hide the axes
-        filename = './samples/MNIST_' +str(epoch)+'.png'
-        plt.savefig(filename, bbox_inches='tight', pad_inches=0)
+
+        # Sample saving handling
+        timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
+        config_dir =f'./samples/MNIST_{args.batch_size}_epochs{args.epochs}_lr{args.lr}/'
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+            print(f"Created directory: {config_dir}")
+
+        # Save the image
+        image_filename = config_dir + f'epoch{epoch}_{timestamp}.png'
+        # filename = './samples/MNIST_' +str(epoch)+'.png'
+        plt.savefig(image_filename, bbox_inches='tight', pad_inches=0)
 
 
 def main(args):
