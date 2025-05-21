@@ -81,6 +81,8 @@ def main(args):
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr)
     
+    # --- Training Loop ---
+    print("\n🧪 Starting training...\n")
     losses = []
     total_train_time = 0
     total_sample_time = 0
@@ -103,7 +105,7 @@ def main(args):
         
         # Log the loss
         losses.append(loss)
-        epoch_progres_bar.set_postfix(loss=f"{loss:.4f}", train=f"{train_time:.1f}s", sample=f"{sample_time:.1f}s")
+        print(f"Epoch {epoch:02d} | Average Loss: {loss:.4f} | Train time: {train_time:.1f}s | Sample time: {sample_time:.1f}s")
 
     # --- Final Analytics ---
     print("\n📊 Final Analytics:")
