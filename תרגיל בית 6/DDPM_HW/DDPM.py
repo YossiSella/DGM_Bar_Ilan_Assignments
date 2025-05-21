@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from UNet import Unet
 class DDPM(nn.Module):
-    def __init__(self, timestepstimesteps=1000, guidance=False,device='cpu'):
+    def __init__(self, timesteps=1000, guidance=False,device='cpu'):
         """
         DDPM model for conditional MNIST generation
         :param timesteps: Number of timesteps in the generation
@@ -16,7 +16,7 @@ class DDPM(nn.Module):
         super(DDPM, self).__init__()
         self.device = device
         self.guidance = guidance
-        self.timesteps = 1000
+        self.timesteps = timesteps
         self.in_channels = 1
         self.image_size = 28
         self.model=Unet(self.timesteps,64)
