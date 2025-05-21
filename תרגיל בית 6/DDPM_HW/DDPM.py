@@ -5,6 +5,8 @@ import math
 import torch.nn as nn
 import torch.nn.functional as F
 from UNet import Unet
+from tqdm import trange
+
 class DDPM(nn.Module):
     def __init__(self, timesteps=1000, guidance=False,device='cpu'):
         """
@@ -42,7 +44,7 @@ class DDPM(nn.Module):
         y = torch.tensor([0,1,2,3,4,5,6,7,8,9]*10).to(self.device)
         x = torch.randn(100,1,28,28).to(self.device)
         
-        for t in reversed(range(self.timesteps)):
+        for t in trange(self.timesteps-1,-1,-1, desc='Sampling', leave=True):
             t_batch = torch.full((x.size(0),), t, device= self.device, dtype= torch.long)
 
             # Predict noise at timestep t
