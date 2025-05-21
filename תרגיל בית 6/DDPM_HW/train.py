@@ -14,7 +14,7 @@ import pickle
 
 def train(model, trainloader, optimizer, epoch,device):
 
-    progress_bar = tqdm(trainloader, total=len(trainloader), desc=f"Epoch {epoch:02d}")
+    progress_bar = tqdm(trainloader, total=len(trainloader), desc=f"Training Epoch {epoch:02d}")
     losses = []
 
     model.train()  # set to training mode
@@ -36,7 +36,7 @@ def train(model, trainloader, optimizer, epoch,device):
         losses.append(loss.item())
 
     mean_loss = float(np.mean(losses))
-    print(f"► Epoch {epoch:02d} | loss = {mean_loss:.4f}")
+    print(f"► Epoch {epoch:02d} | Average Loss = {mean_loss:.4f}")
     return mean_loss
 
 def sample(model,epoch):
@@ -80,9 +80,38 @@ def main(args):
     model = DDPM(device=device).to(device)
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr)
-    for i in range(args.epochs):
-        train(model,trainloader,optimizer,i,device)
-        sample(model,i)
+    
+    losses = []
+    total_train_time = 0
+    total_sample_time = 0
+
+    epoch_progres_bar = tqdm(range(args.epochs), desc="Epochs", leave=True)
+    for epoch in epoch_progres_bar:
+        # Train
+        start_time = time.time()
+        loss = train(model,trainloader,optimizer,epoch,device)
+        end_time = time.time()
+        train_time = end_time - start_time
+        total_train_time += train_time
+        
+        # Sample
+        start_time = time.time()
+        sample(model,epoch)
+        end_time = time.time()
+        sample_time = end_time - start_time
+        total_sample_time += sample_time
+        
+        # Log the loss
+        losses.append(loss)
+        epoch_progres_bar.set_postfix(loss=f"{loss:.4f}", train=f"{train_time:.1f}s", sample=f"{sample_time:.1f}s")
+
+    # --- Final Analytics ---
+    print("\n📊 Final Analytics:")
+    print(f"Total training time: {total_train_time:.2f} sec")
+    print(f"Total sampling time: {total_sample_time:.2f} sec")
+    print(f"Total run time:      {total_train_time + total_sample_time:.2f} sec")
+    print(f"Final loss:          {losses[-1]:.6f}")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
