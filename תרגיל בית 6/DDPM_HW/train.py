@@ -87,8 +87,7 @@ def main(args):
     total_train_time = 0
     total_sample_time = 0
 
-    epoch_progres_bar = tqdm(range(args.epochs), desc="Epochs", leave=True)
-    for epoch in epoch_progres_bar:
+    for epoch in range(args.epochs):
         # Train
         start_time = time.time()
         loss = train(model,trainloader,optimizer,epoch,device)
@@ -113,6 +112,26 @@ def main(args):
     print(f"Total sampling time: {total_sample_time:.2f} sec")
     print(f"Total run time:      {total_train_time + total_sample_time:.2f} sec")
     print(f"Final loss:          {losses[-1]:.6f}")
+
+    # Plot the losses
+    plt.figure(figsize=(8,5))
+    plt.plot(losses, label='Loss')
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE Loss")
+    plt.title("Training Loss Over Epochs")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("training_loss.png")
+    plt.show()
+
+    # Save the model and results
+    timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
+    model_filename = f'./models/{args.batch_size}_epoch{args.epochs}_{timestamp}.pt'
+    torch.save(model.state_dict(), model_filename)
+
+    with open(f'./logs/{args.batch_size}_epoch{args.epochs}_{timestamp}_loss.pkl', 'wb') as f:
+        pickle.dump({'train_loss': losses}, f)
 
 
 if __name__ == '__main__':
