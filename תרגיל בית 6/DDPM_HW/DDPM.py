@@ -65,6 +65,46 @@ class DDPM(nn.Module):
                 x    += sigma * noise
 
         return x.to('cpu')
+    
+
+    def ddim_sample(self, num_steps=50, eta=0.0):
+        '''
+        Generates 100 MNIST samples conditioned on digits [0-9]*10 using DDIM sampling.
+
+        :param num_steps: Number of steps for DDIM sampling.
+        :param eta:       Parameter controlling the amount of noise added.
+        
+        :return: samples 100 images conditioned on y =torch.tensor([0,1,2,3,4,5,6,7,8,9]*10).to(self.device)
+        '''
+        y = torch.tensor([0,1,2,3,4,5,6,7,8,9]*10).to(self.device)
+        x = torch.randn(100,1,28,28).to(self.device)
+
+        # choose `num_steps` timesteps spaced across the full range
+        ddim_steps = torch.linspace(0, self.timesteps - 1, steps=num_steps, dtype=torch.long).flip(0).to(self.device)
+
+        for t in trange(len(ddim_steps) - 1, desc=f"DDIM Sampling ({num_steps} steps)", leave=True):
+            t = ddim_steps[t]
+            t_prev = ddim_steps[t + 1] if t < len(ddim_steps) - 1 else 0 
+
+            t_batch = torch.full((x.size(0),), t * (self.timesteps // num_steps), device=self.device)
+
+            # Predict noise at timestep t   
+            epsilon_pred = self.model(x,t_batch,y)
+
+            # Compute the coefficients for updating x_t
+            alpha_bar_t = self.alpha_bars[t]
+            alpha_bar_prev = self.alpha_bars[t_prev]
+
+            # Estimate x_0 from x_t and predicted noise
+            x_0 = (x - torch.sqrt(1 - alpha_bar_t) * epsilon_pred) / torch.sqrt(alpha_bar_t) 
+
+            # Compute the direction to x_t-1
+            sigma = eta * torch.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar_t) * (1 - alpha_bar_t / alpha_bar_prev))
+            noise = torch.randn_like(x) if t > 0. else 0.
+
+            x = torch.sqrt(alpha_bar_prev) * x_0 + torch.sqrt(1 - alpha_bar_prev - sigma**2) * epsilon_pred + sigma * noise
+
+        return x.to('cpu')
 
     def forward(self, x, epsilon, t, y):
         '''
