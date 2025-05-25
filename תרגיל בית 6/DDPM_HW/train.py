@@ -39,10 +39,21 @@ def train(model, trainloader, optimizer, epoch,device):
     print(f"► Epoch {epoch:02d} | Average Loss = {mean_loss:.4f}")
     return mean_loss
 
-def sample(model,epoch):
+def sample(model,epoch, sampler, num_steps=50, eta=0.0):
+    """
+    Sample images from the model and save them to a file.
+    """
     model.eval()
     with torch.no_grad():
-        samples = model.sample()*0.5+0.5
+        if sampler == 'ddpm':
+            samples = model.sample()
+        elif sampler == 'ddim':
+            samples = model.ddim_sample(num_steps=num_steps, eta=eta)
+        else:
+            raise ValueError(f"Unknown sampler: {sampler}")
+        
+        # Rescale the samples to [0, 1]
+        samples = samples*0.5+0.5
         samples.clamp_(0., 1.)
         grid_image = utils.make_grid(samples, nrow=10, padding=2)
         grid_image = grid_image.numpy().transpose((1, 2, 0))  # Convert from CxHxW to HxWxC
@@ -51,7 +62,11 @@ def sample(model,epoch):
 
         # Sample saving handling
         timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
-        config_dir =f'./samples/MNIST_{args.batch_size}_epochs{args.epochs}_lr{args.lr}/'
+        if sampler == 'ddpm':
+            config_dir =f'./samples/MNIST_{args.batch_size}_epochs{args.epochs}_lr{args.lr}_sampler{args.sampler}/'
+        elif sampler == 'ddim':
+            config_dir =f'./samples/MNIST_{args.batch_size}_epochs{args.epochs}_lr{args.lr}_sampler{args.sampler}_num_steps{args.num_steps}_eta(noise){args.eta}/'
+       
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
             print(f"Created directory: {config_dir}")
@@ -97,7 +112,10 @@ def main(args):
         
         # Sample
         start_time = time.time()
-        sample(model,epoch)
+        if args.sampler == 'ddim':
+            sample(model, epoch, sampler='ddim', num_steps=args.num_steps, eta=args.eta)
+        else:
+            sample(model, epoch, sampler='ddpm')
         end_time = time.time()
         sample_time = end_time - start_time
         total_sample_time += sample_time
@@ -108,10 +126,16 @@ def main(args):
 
     # --- Final Analytics ---
     print("\n📊 Final Analytics:")
-    print(f"Total training time: {total_train_time:.2f} sec")
+    print(f"Sampler: {args.sampler}")
     print(f"Total sampling time: {total_sample_time:.2f} sec")
     print(f"Total run time:      {total_train_time + total_sample_time:.2f} sec")
     print(f"Final loss:          {losses[-1]:.6f}")
+
+    timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
+    if args.sampler == 'ddpm':
+        config_file =f'MNIST_{args.batch_size}_epochs{args.epochs}_lr{args.lr}_sampler{args.sampler}'
+    elif args.sampler == 'ddim':
+        config_file =f'MNIST_{args.batch_size}_epochs{args.epochs}_lr{args.lr}_sampler{args.sampler}_num_steps{args.num_steps}_eta(noise){args.eta}'
 
     # Plot the losses
     plt.figure(figsize=(8,5))
@@ -122,16 +146,24 @@ def main(args):
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
-    plt.savefig("training_loss.png")
+    plt.savefig(f'./samples/' + config_file + f'/training_loss.png')
     plt.show()
 
     # Save the model and results
-    timestamp = time.strftime('%Y.%m.%d-%H.%M.%S')
-    model_filename = f'./models/{args.batch_size}_epoch{args.epochs}_{timestamp}.pt'
+    model_filename = f'./models/'+ config_file + f'_{timestamp}.pt'
     torch.save(model.state_dict(), model_filename)
 
-    with open(f'./logs/{args.batch_size}_epoch{args.epochs}_{timestamp}_loss.pkl', 'wb') as f:
-        pickle.dump({'train_loss': losses}, f)
+    with open(f'./logs/'+ config_file + f'_{timestamp}_loss.pkl', 'wb') as f:
+        pickle.dump({'train_loss': losses,
+                     'sampler': args.sampler,
+                     'num_steps': getattr(args, 'num_steps', None),
+                     'eta': getattr(args, 'eta', None),
+                     'total_sample_time': total_sample_time,
+                     'total_train_time': total_train_time,
+                     'total_run_time': total_train_time + total_sample_time,
+                     'final_loss': losses[-1]}, f)
+   
+    print(f"Model saved to {model_filename}")
 
 
 if __name__ == '__main__':
@@ -148,6 +180,23 @@ if __name__ == '__main__':
                         help='initial learning rate.',
                         type=float,
                         default=1e-3)
+    parser.add_argument('--sampler',
+                        help='sampler to use (ddpm or ddim).',
+                        type=str,
+                        default='ddpm')
+    
+    args, _ = parser.parse_known_args()
 
+    # Add arguments based on the sampler
+    if args.sampler == 'ddim':
+        parser.add_argument('--num_steps',
+                            help='number of steps for DDIM sampling.',
+                            type=int,
+                            default=50)
+        parser.add_argument('--eta',
+                            help='parameter controlling the amount of noise for DDIM sampling.',
+                            type=float,
+                            default=0.0)
+        
     args = parser.parse_args()
     main(args)
