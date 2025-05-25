@@ -69,7 +69,7 @@ class DDPM(nn.Module):
 
     def ddim_sample(self, num_steps=50, eta=0.0):
         '''
-        Generates 100 MNIST samples conditioned on digits [0-9]*10 using DDIM sampling.
+        Generates 100 MNIST samples conditioned on digits [0-9]*10 using DDIM sampling (based on the DDIM paper).
 
         :param num_steps: Number of steps for DDIM sampling.
         :param eta:       Parameter controlling the amount of noise added.
@@ -80,13 +80,16 @@ class DDPM(nn.Module):
         x = torch.randn(100,1,28,28).to(self.device)
 
         # choose `num_steps` timesteps spaced across the full range
-        ddim_steps = torch.linspace(0, self.timesteps - 1, steps=num_steps, dtype=torch.long).flip(0).to(self.device)
+        ddim_steps = torch.linspace(0, self.timesteps - 1, steps=num_steps)
+        ddim_steps = torch.round(ddim_steps).long().clamp(0, self.timesteps - 1).flip(0).to(self.device)
 
-        for t in trange(len(ddim_steps) - 1, desc=f"DDIM Sampling ({num_steps} steps)", leave=True):
-            t = ddim_steps[t]
-            t_prev = ddim_steps[t + 1] if t < len(ddim_steps) - 1 else 0 
 
-            t_batch = torch.full((x.size(0),), t * (self.timesteps // num_steps), device=self.device)
+        for i in trange(len(ddim_steps) - 1, desc=f"DDIM Sampling ({num_steps} steps)", leave=True):
+            t = int(ddim_steps[i].item())
+            # Get the previous timestep, or 0 if this is the last step
+            t_prev = int(ddim_steps[i + 1].item()) if i < len(ddim_steps) - 1 else 0 
+
+            t_batch = torch.full((x.size(0),), t, device=self.device, dtype=torch.long)
 
             # Predict noise at timestep t   
             epsilon_pred = self.model(x,t_batch,y)
@@ -96,13 +99,19 @@ class DDPM(nn.Module):
             alpha_bar_prev = self.alpha_bars[t_prev]
 
             # Estimate x_0 from x_t and predicted noise
-            x_0 = (x - torch.sqrt(1 - alpha_bar_t) * epsilon_pred) / torch.sqrt(alpha_bar_t) 
+            x_0 = (x - torch.sqrt(1 - alpha_bar_t) * epsilon_pred) / torch.sqrt(alpha_bar_t)
+            x_0 = x_0.clamp(-1., 1.)
 
             # Compute the direction to x_t-1
             sigma = eta * torch.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar_t) * (1 - alpha_bar_t / alpha_bar_prev))
-            noise = torch.randn_like(x) if t > 0. else 0.
+            noise = torch.randn_like(x_0) if t > 0 else 0.
 
-            x = torch.sqrt(alpha_bar_prev) * x_0 + torch.sqrt(1 - alpha_bar_prev - sigma**2) * epsilon_pred + sigma * noise
+            eps_coeff = torch.sqrt(torch.clamp(1 - alpha_bar_prev - sigma**2, min=1e-6))
+
+            x = torch.sqrt(alpha_bar_prev) * x_0 + eps_coeff * epsilon_pred + sigma * noise
+
+            # print("ε_pred std:", epsilon_pred.std().item(), "x std:", x.std().item())
+
 
         return x.to('cpu')
 
